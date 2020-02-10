@@ -3,7 +3,7 @@ Bash script for remote and local rsync backup including support of zfs/ext4 (bac
 
 This script offers Rsync-backup with Veeam-style mail notification. It creates incremental backups of files and directories to the destination of your choice (local folder or external disk). The backup structure is easy to recover any file at any point in time.
 
-If you install ZFS-Tools you can use the compression of zfs to get more out of your external backup disks space. The main advantage of this script is that it will evaluate the return value from rsync and build a nice info mail with all the nessesary information you need.
+If you install ZFS-Tools you can use the compression of zfs to get more out of your external devices. The main advantage of this script is that it will evaluate the return value from rsync and build a nice info mail with all the nessesary information you need.
 
 ## Installation/Usage
 
@@ -36,11 +36,15 @@ If you would like to backup a remote system to a local harddisk, your just need 
 If the file "mounted" is not found the backup will not start.
 
 To backup all systems simply start the backup script:
+
     /opt/remote-rsync-backup/backup-rsync-remote.sh
+    
 To backup only one specific system start it with the hostname you have used in backup-source.config
+
     /opt/remote-rsync-backup/backup-rsync-remote.sh hosttobackup
     
-To backup your remote or local system you will have to copy your public ssh key to the system you would like to backup:
+To backup your remote or local system you will have to copy your public ssh key to the system you would like to backup: 
+
     ssh-copy-id hosttobackup
     
 Password-less login with ssk-key is mandadory!
@@ -49,12 +53,18 @@ To restore files from your backup simply mount the backup device
 
     zpool import -N rsyncbackup && zfs mount rsyncbackup
 
-Now you find the lastest backup in your "BACKUPDIR" for instance /srv/backup.
+Latest backup can be found in your "BACKUPDIR" for instance /srv/backup.
+
 To get files from a snapshot just list the snapshots with:
-    zfs list -t snapshot
+
+        zfs list -t snapshot
+        
 And mount the one you would like to restore from:
-    mount -t zfs rsyncbackup/systema@17 /mnt
+    
+    mount -t zfs rsyncbackup/systema@17 /mnt
+    
 Unmount and detach zfs disk with:
+
     umount /mnt && zfs umount -f /srv/backup && zpool export rsyncbackup
 
 ## TODO
