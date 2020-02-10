@@ -2,7 +2,7 @@
 
 ########################################################################################
 
-VERSION="1.0.7"
+VERSION="1.0.8"
 CONFIGFILE=/usr/local/sbin/backup.config
 AGENT=$(rsync --version|grep "version "|awk -F'version' '{print $2}'|awk '{print $1}')
 
@@ -151,12 +151,11 @@ if ! [ -d "$STATDIR" ]; then
 fi
 
 MAILNAME=$(cat /etc/mailname);
-if [ "$FSBACKUPDEV" == "ext4" ]; then
-        ISMOUNTED=$(mount |grep " $BACKUPDEV "|awk '{print $3}'|grep "$BACKUPDIR")
-fi
 
 if [ "$FSBACKUPDEV" == "zfs" ]; then
         ISMOUNTED=$(mount |grep "^rsyncbackup"|awk '{print $3}'|grep "$BACKUPDIR")
+else
+        ISMOUNTED=$(mount |grep " $BACKUPDEV "|awk '{print $3}'|grep "$BACKUPDIR")
 fi
 
 if [ "X$DEBUG" == "X1" ]; then echo "check mounted backupdir"; fi
@@ -172,13 +171,12 @@ if [ "$BACKUPDEV" ]; then
                         FSCKSTATUS=$(fsck.ext4 -p $BACKUPDEV > $STATDIR/fsck.log)
                 fi
                 if ! [ "$ISMOUNTED" ]; then
-                        if [ "$FSBACKUPDEV" == "ext4" ]; then
-                                mount -t $FSBACKUPDEV $BACKUPDEV $BACKUPDIR > /dev/null
-                        fi
                         if [ "$FSBACKUPDEV" == "zfs"  ]; then
                                 if [ "X$DEBUG" == "X1" ]; then echo "import zfs"; fi
                                 zpool import -N rsyncbackup 2>/dev/null
                                 zfs mount rsyncbackup 2>/dev/null
+                        else
+                                mount -t $FSBACKUPDEV $BACKUPDEV $BACKUPDIR > /dev/null
                         fi
                 else
                         # file "mounted" is missing: if HDID file missing too create new HDID and mounted
@@ -199,11 +197,10 @@ if [ "$BACKUPDEV" ]; then
 
         if ! [ -f "$BACKUPDIR/mounted" ]; then
                 sleep 10
-                if [ "$FSBACKUPDEV" == "ext4" ]; then
-                        mount -t $FSBACKUPDEV $BACKUPDEV $BACKUPDIR > /dev/null
-                fi
                 if [ "$FSBACKUPDEV" == "zfs"  ]; then
                         zfs mount rsyncbackup 2>/dev/null
+                else
+                        mount -t $FSBACKUPDEV $BACKUPDEV $BACKUPDIR > /dev/null
                 fi
         fi
 
@@ -288,18 +285,17 @@ for LINE in $(cat $SOURCEFILE|grep -v "^#"|$ONLY);do
                 date > $STATDIR/$HDID/$SERVER.log
 
                 # create backup directory
-                if [ "$FSBACKUPDEV" == "ext4" ]; then
-                        if [ ! -d "$TARGET/$SERVER" ]; then
-                                echo "Creating new backup directory for server $SERVER" >> $STATDIR/$HDID/$SERVER.log
-                                mkdir "$TARGET/$SERVER" >> $STATDIR/$HDID/$SERVER.log
-                        fi
-                fi
                 if [ "$FSBACKUPDEV" == "zfs" ]; then
                         zfs mount rsyncbackup/$SERVER 2>/dev/null
                         if [ ! -d "$TARGET/$SERVER" ]; then
                                 echo "Creating new backup directory for server $SERVER" >> $STATDIR/$HDID/$SERVER.log
                                 zfs create rsyncbackup/$SERVER >> $STATDIR/$HDID/$SERVER.log
                                 zfs set compression=lz4 rsyncbackup
+                        fi
+                else
+                        if [ ! -d "$TARGET/$SERVER" ]; then
+                                echo "Creating new backup directory for server $SERVER" >> $STATDIR/$HDID/$SERVER.log
+                                mkdir "$TARGET/$SERVER" >> $STATDIR/$HDID/$SERVER.log
                         fi
                 fi
 
@@ -321,14 +317,6 @@ for LINE in $(cat $SOURCEFILE|grep -v "^#"|$ONLY);do
 
                 if [ "$ALIVE" ]; then
                         # rsync local or remote (ssh-port)
-                        if [ "$FSBACKUPDEV" == "ext4" ]; then
-                                if [ "$SSHPORT" ]; then
-                                        rsync -avz --numeric-ids -e "ssh -p $SSHPORT" --delete --delete-excluded --exclude-from="$EXCLUDES" $SERVER:/ $TARGET/$SERVER/daily.0/ >> $STATDIR/$HDID/$SERVER.log 2>&1
-                                else
-                                        # backup local system
-                                        rsync -avz --numeric-ids --delete --delete-excluded --exclude-from="$EXCLUDES" / $TARGET/$SERVER/daily.0/ >> $STATDIR/$HDID/$SERVER.log 2>&1
-                                fi
-                        fi
 
                         if [ "$FSBACKUPDEV" == "zfs" ]; then
                                 if [ "$SSHPORT" ]; then
@@ -336,6 +324,13 @@ for LINE in $(cat $SOURCEFILE|grep -v "^#"|$ONLY);do
                                 else
                                         # backup local system
                                         rsync -avz --numeric-ids --delete --delete-excluded --exclude-from="$EXCLUDES" / $TARGET/$SERVER/ >> $STATDIR/$HDID/$SERVER.log 2>&1
+                                fi
+                        else
+                                if [ "$SSHPORT" ]; then
+                                        rsync -avz --numeric-ids -e "ssh -p $SSHPORT" --delete --delete-excluded --exclude-from="$EXCLUDES" $SERVER:/ $TARGET/$SERVER/daily.0/ >> $STATDIR/$HDID/$SERVER.log 2>&1
+                                else
+                                        # backup local system
+                                        rsync -avz --numeric-ids --delete --delete-excluded --exclude-from="$EXCLUDES" / $TARGET/$SERVER/daily.0/ >> $STATDIR/$HDID/$SERVER.log 2>&1
                                 fi
                         fi
 
@@ -500,44 +495,41 @@ for LINE in $(cat $SOURCEFILE|grep -v "^#"|$ONLY);do
         if [ -f "$BACKUPDIR/mounted" ]; then
 
                 # remove latest snapshot
-                if [ "$FSBACKUPDEV" == "ext4" ]; then
-                        if [ -d "$TARGET/$SERVER/daily.$MAX" ]; then
-                                rm -rf "$TARGET/$SERVER/daily.$MAX"
-                        fi
-                fi
                 if [ "$FSBACKUPDEV" == "zfs" ]; then
                         SNAPMISS=$(zfs list -t snapshot rsyncbackup/$SERVER@$MAX 2>&1|grep "dataset does not exist")
                         if [ ! "$SNAPMISS" ] ; then
                                 zfs destroy rsyncbackup/$SERVER@$MAX
+                        fi
+                else
+                        if [ -d "$TARGET/$SERVER/daily.$MAX" ]; then
+                                rm -rf "$TARGET/$SERVER/daily.$MAX"
                         fi
                 fi
 
                 # rotate snapshots
                 for ((OLD=$MAX; OLD >= 1 ; OLD=OLD-1)); do
                         NEW=$[ $OLD + 1 ]
-                        if [ "$FSBACKUPDEV" == "ext4" ]; then
+                        if [ "$FSBACKUPDEV" == "zfs" ]; then
+                                SNAPMISS=$(zfs list -t snapshot rsyncbackup/$SERVER@$OLD 2>&1|grep "dataset does not exist")
+                                if [ ! "$SNAPMISS" ] ; then
+                                        zfs rename rsyncbackup/$SERVER@$OLD rsyncbackup/$SERVER@$NEW
+                                fi
+                        else
                                 if [ -d "$TARGET/$SERVER/daily.$OLD" ] ; then
                                         touch "$TARGET/.timestamp" -r "$TARGET/$SERVER/daily.$OLD"
                                         mv "$TARGET/$SERVER/daily.$OLD" "$TARGET/$SERVER/daily.$NEW"
                                         touch "$TARGET/$SERVER/daily.$NEW" -r "$TARGET/.timestamp"
                                 fi
                         fi
-                        if [ "$FSBACKUPDEV" == "zfs" ]; then
-                                SNAPMISS=$(zfs list -t snapshot rsyncbackup/$SERVER@$OLD 2>&1|grep "dataset does not exist")
-                                if [ ! "$SNAPMISS" ] ; then
-                                        zfs rename rsyncbackup/$SERVER@$OLD rsyncbackup/$SERVER@$NEW
-                                fi
-                        fi
                 done
 
                 # create/copy snapshot from Level-0 with hardlinks to Level-1
-                if [ "$FSBACKUPDEV" == "ext4" ]; then
+                if [ "$FSBACKUPDEV" == "zfs" ]; then
+                        zfs snapshot rsyncbackup/$SERVER@1
+                else
                         if [ -d "$TARGET/$SERVER/daily.0" ] ; then
                                 cp -al "$TARGET/$SERVER/daily.0" "$TARGET/$SERVER/daily.1"
                         fi
-                fi
-                if [ "$FSBACKUPDEV" == "zfs" ]; then
-                        zfs snapshot rsyncbackup/$SERVER@1
                 fi
         fi
 
