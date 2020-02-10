@@ -16,16 +16,22 @@ Move the directory to /opt
 Install zfstools and curl (optional - zfstools if you would like to use zfs with snapshots and compression, curl to check for new versions of remote-rsync-backup)
 
     sudo apt-get install zfstools curl
+    
 or
+
     sudo yum install curl zfstools
     
 Change the default settings in backup.config to your needs.
 Change the hosts which you would like to backup in backup-source.config.
 
 Attach your backup disk and initialize it with (zfs is recommended)
+
     /opt/remote-rsync-backup/backup-rsync-remote.sh --init-zfs
+    
 or 
+
     /opt/remote-rsync-backup/backup-rsync-remote.sh --init-ext4
+    
 depending on the filesystem your would like to use.
 
 If you would like to backup a remote system to a local harddisk, your just need enough free space for instance in /srv/backup and you should create the following files manualy:
