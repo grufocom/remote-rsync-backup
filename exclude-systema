@@ -1,0 +1,14 @@
+/proc
+/dev
+/media
+/lost+found
+/mnt
+/sys
+/srv/backup
+/srv/backup.stats
+/mnt
+/cdrom
+/var/cache
+/var/games
+/var/lib/lxcfs/
+/run
