@@ -1,0 +1,9 @@
+/proc
+/dev
+/media
+/lost+found
+/mnt
+/sys
+/mnt
+/cdrom
+/var/lib/lxcfs/
