@@ -3,7 +3,7 @@ Bash script for remote and local rsync backup including support of zfs/ext4 (bac
 
 This script offers Rsync-backup with Veeam-style mail notification. It creates incremental backups of files and directories to the destination of your choice (local folder or external disk). The backup structure is easy to recover any file at any point in time.
 
-If you install ZFS-Tools you can use the compression of zfs to get more out of your external backup disks space. The main advantage of this script is that it will evaluate the return value from rsync and build a nice inof mail with all the nessesary information you need.
+If you install ZFS-Tools you can use the compression of zfs to get more out of your external backup disks space. The main advantage of this script is that it will evaluate the return value from rsync and build a nice info mail with all the nessesary information you need.
 
 ## Installation/Usage
 
