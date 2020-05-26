@@ -3,7 +3,7 @@
 ########################################################################################
 
 VERSION="1.0.8"
-CONFIGFILE=/usr/local/sbin/backup.config
+CONFIGFILE=/opt/remote-rsync-backup/backup.config
 AGENT=$(rsync --version|grep "version "|awk -F'version' '{print $2}'|awk '{print $1}')
 
 ########################################################################################
