@@ -78,3 +78,5 @@ Unmount and detach zfs disk with:
 * automatic mount of snapshots for restore
 * test ssh connection to backup systems and copy public ssh key to them
 * init-local - initialize for backup to local disk
+* sendmail without local temp-file
+* do not send logfile if too big, warn or send only a smaller part
