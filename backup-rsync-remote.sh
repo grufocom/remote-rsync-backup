@@ -2,7 +2,7 @@
 
 ########################################################################################
 
-VERSION="1.0.8"
+VERSION="1.0.9"
 CONFIGFILE=/opt/remote-rsync-backup/backup.config
 AGENT=$(rsync --version|grep "version "|awk -F'version' '{print $2}'|awk '{print $1}')
 
@@ -16,6 +16,11 @@ MAILNAME=$(cat /etc/mailname);
 
 # debug mode
 DEBUG=0
+
+if pidof -x "backup-rsync-remote.sh" >/dev/null; then
+ echo "Process already running"
+ exit
+fi
 
 # parameter --init-ext4 -> initialize (format) new backup disk
 if [ "$1" == "--init-ext4" ] && [ "$BACKUPDEV" ]; then
