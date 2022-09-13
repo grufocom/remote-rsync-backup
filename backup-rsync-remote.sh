@@ -2,7 +2,7 @@
 
 ########################################################################################
 
-VERSION="1.0.10"
+VERSION="1.0.11"
 CONFIGFILE=/opt/remote-rsync-backup/backup.config
 AGENT=$(rsync --version|grep "version "|awk -F'version' '{print $2}'|awk '{print $1}')
 
@@ -17,7 +17,7 @@ MAILNAME=$(cat /etc/mailname);
 # debug mode
 DEBUG=0
 
-if pidof -x "backup-rsync-remote.sh"|grep -v $$ >/dev/null; then
+if pidof -o $$ -x "backup-rsync-remote.sh"; then
  echo "Process already running"
  exit
 fi
